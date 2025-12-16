@@ -54,8 +54,8 @@ const byte nrf24_channels[]    =      {76, 78, 79};
 
 // --- Constant Array Definitions (Splash Screen Text/Bitmap Data) ---
 const uint8_t txt_n[]    = {82, 102, 67, 108, 111, 119, 110}; // "RfClown"
-const uint8_t txt_c[]    = {98, 121, 32, 67, 105, 102, 101, 114, 84, 101, 99, 104}; // "by CiferTech"
-const uint8_t txt_v[]    = {118, 50, 46, 48, 46, 48}; // "v2.0.0"
+const uint8_t txt_c[]    = {98, 121, 32, 75, 69, 74, 85}; // "KEJU"
+const uint8_t txt_v[]    = {118, 50, 46, 120}; // "v2.x"
 
 // --- Definitions of Constant Array Sizes (New) ---
 const size_t BLUETOOTH_CHANNELS_SIZE = sizeof(bluetooth_channels) / sizeof(bluetooth_channels[0]);
