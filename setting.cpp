@@ -11,17 +11,50 @@
 // These are defined here, and declared extern in setting.h
 // --------------------------------------------------------------------------
 
-const uint8_t txt_n[]   = {82, 102, 67, 108, 111, 119, 110};
-const uint8_t txt_c[]   = {98, 121, 32, 67, 105, 102, 101, 114, 84, 101, 99, 104}; 
-const uint8_t txt_v[]   = {118, 50, 46, 48, 46, 48}; 
+// --- Global Variable Definitions (Matching externs in setting.h) ---
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+Adafruit_NeoPixel pixels(1, 14, NEO_GRB + NEO_KHZ800);
 
+bool neoPixelActive = false;
+uint8_t oledBrightness = 100;
+
+// State variables used in RfClown.ino
+volatile OperationMode current_Mode = WiFi_MODULE;
+volatile Operation current = DEACTIVE_MODE;
+volatile bool ChangeRequested  = false;
+volatile bool ChangeRequested1 = false;
+volatile bool ChangeRequested2 = false;
+unsigned long lastPressTime = 0;
+// Note: debounceDelay is a constant in config.h
+
+// Multi-Mode Initial Channel Groups
+byte channelGroup_1[] = {2, 5, 8, 11};
+byte channelGroup_2[] = {26, 29, 32, 35};
+byte channelGroup_3[] = {80, 83, 86, 89};
+
+// --- Constant Array Definitions (Channel Hopping Data) ---
+const byte bluetooth_channels[] =      {32, 34, 46, 48, 50, 52, 0, 1, 2, 4, 6, 8, 22, 24, 26, 28, 30, 74, 76, 78, 80};
+const byte ble_channels[]      =      {2, 26, 80};
+const byte WiFi_channels[]     =      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+const byte usbWireless_channels[] =    {40, 50, 60};
+const byte videoTransmitter_channels[] = {70, 75, 80};
+const byte rc_channels[]       =      {1, 3, 5, 7};
+const byte zigbee_channels[]   =      {11, 15, 20, 25};
+const byte nrf24_channels[]    =      {76, 78, 79};
+
+// --- Constant Array Definitions (Splash Screen Text/Bitmap Data) ---
+const uint8_t txt_n[]    = {82, 102, 67, 108, 111, 119, 110}; // "RfClown"
+const uint8_t txt_c[]    = {98, 121, 32, 67, 105, 102, 101, 114, 84, 101, 99, 104}; // "by CiferTech"
+const uint8_t txt_v[]    = {118, 50, 46, 48, 46, 48}; // "v2.0.0"
+
+// Bitmap Data (Note: This is the large array from your previous file)
 const unsigned char cred [] PROGMEM = {
+  // ... (Large array of 1024 bytes for the 128x64 bitmap) ...
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+  0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0x3f, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x07, 0xf0, 0x83, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 
