@@ -37,6 +37,11 @@ byte channelGroup_1[] = {2, 5, 8, 11};
 byte channelGroup_2[] = {26, 29, 32, 35};
 byte channelGroup_3[] = {80, 83, 86, 89};
 
+// --- Definitions of Array Sizes (New) ---
+const size_t CHANNEL_GROUP_1_SIZE = sizeof(channelGroup_1) / sizeof(channelGroup_1[0]);
+const size_t CHANNEL_GROUP_2_SIZE = sizeof(channelGroup_2) / sizeof(channelGroup_2[0]);
+const size_t CHANNEL_GROUP_3_SIZE = sizeof(channelGroup_3) / sizeof(channelGroup_3[0]);
+
 // --- Constant Array Definitions (Channel Hopping Data) ---
 const byte bluetooth_channels[] =      {32, 34, 46, 48, 50, 52, 0, 1, 2, 4, 6, 8, 22, 24, 26, 28, 30, 74, 76, 78, 80};
 const byte ble_channels[]      =      {2, 26, 80};
@@ -52,8 +57,21 @@ const uint8_t txt_n[]    = {82, 102, 67, 108, 111, 119, 110}; // "RfClown"
 const uint8_t txt_c[]    = {98, 121, 32, 67, 105, 102, 101, 114, 84, 101, 99, 104}; // "by CiferTech"
 const uint8_t txt_v[]    = {118, 50, 46, 48, 46, 48}; // "v2.0.0"
 
+// --- Definitions of Constant Array Sizes (New) ---
+const size_t BLUETOOTH_CHANNELS_SIZE = sizeof(bluetooth_channels) / sizeof(bluetooth_channels[0]);
+const size_t BLE_CHANNELS_SIZE = sizeof(ble_channels) / sizeof(ble_channels[0]);
+const size_t WIFI_CHANNELS_SIZE = sizeof(WiFi_channels) / sizeof(WiFi_channels[0]);
+const size_t USB_WIRELESS_CHANNELS_SIZE = sizeof(usbWireless_channels) / sizeof(usbWireless_channels[0]);
+const size_t VIDEO_TRANSMITTER_CHANNELS_SIZE = sizeof(videoTransmitter_channels) / sizeof(videoTransmitter_channels[0]);
+const size_t RC_CHANNELS_SIZE = sizeof(rc_channels) / sizeof(rc_channels[0]);
+const size_t ZIGBEE_CHANNELS_SIZE = sizeof(zigbee_channels) / sizeof(zigbee_channels[0]);
+const size_t NRF24_CHANNELS_SIZE = sizeof(nrf24_channels) / sizeof(nrf24_channels[0]);
+
+// Define the variable here
+const unsigned long debounceDelay = 200;
+
 // 'kejulogo', 128x64px
-const unsigned char epd_bitmap_kejulogo [] PROGMEM = {
+const unsigned char cred [] PROGMEM = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
