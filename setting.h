@@ -2,55 +2,76 @@
    This software is licensed under the MIT License:
    https://github.com/cifertech/rfclown
    ________________________________________ */
-  
+   
 #ifndef setting_H
 #define setting_H
 
+// --- 1. Library Includes (All required for different modules) ---
 #include <BLEDevice.h>
 #include <U8g2lib.h>
 #include <Adafruit_NeoPixel.h>
 #include <EEPROM.h>
-#include <RF24.h> // FIX: Must include RF24.h here for RF24 object declarations
+#include <RF24.h>
 #include <vector>
 #include <string>
 #include <SPI.h>
+#include <Arduino.h> // Ensure Arduino core types are available
 
+// --- 2. NeoPixel Function Prototypes (Defined in neopixell.cpp) ---
 void neopixelSetup();
 void neopixelLoop();
-
 void setNeoPixelColour(const std::string& colour);
 void flash(int numberOfFlashes, const std::vector<std::string>& colors, const std::string& finalColour);
 
-// Declarations for objects defined in RfClown.ino (already in config.h, but kept here for clarity if needed)
+// --- 3. External Object and Variable Declarations (Defined ONCE in a .cpp/ino file) ---
 extern U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
 extern Adafruit_NeoPixel pixels;
 
-// Global variable declarations (FIX: Removed problematic comments)
 extern bool neoPixelActive;
 extern uint8_t oledBrightness;
 
-// RF24 Radio object declarations (defined in RfClown.ino)
 extern RF24 RadioA;
 extern RF24 RadioB;
 extern RF24 RadioC;
 
-// Function prototypes (defined in settings.cpp)
+// Volatile state variables from RfClown.ino (will be defined there)
+extern volatile OperationMode current_Mode; // Needs to be defined in config.h (enums) and RfClown.ino (definition)
+extern volatile Operation current;
+extern volatile bool ChangeRequested;
+extern volatile bool ChangeRequested1;
+extern volatile bool ChangeRequested2;
+extern unsigned long lastPressTime;
+extern const unsigned long debounceDelay; // Assuming debounceDelay is defined in config.h
+
+extern byte channelGroup_1[];
+extern byte channelGroup_2[];
+extern byte channelGroup_3[];
+
+// --- 4. Radio/Utility Function Prototypes (Defined in settings.cpp) ---
 void configureNrf(RF24 &radio);
 void setRadiosNeutralState();
 void setupRadioA();
 void setupRadioB();
 void setupRadioC();
 void initAllRadios();
-
-// Utility functions for OLED (defined in settings.cpp)
 void Str(uint8_t x, uint8_t y, const uint8_t* asciiArray, size_t len);
 void CenteredStr(uint8_t screenWidth, uint8_t y, const uint8_t* asciiArray, size_t len, const uint8_t* font);
 void conf();
 
-// --- CONSTANT DECLARATIONS (No definitions, to be defined in settings.cpp) ---
+// --- 5. External Declarations for Constants (Defined ONCE in settings.cpp) ---
 extern const uint8_t txt_n[];
 extern const uint8_t txt_c[];
 extern const uint8_t txt_v[];
 extern const unsigned char cred [] PROGMEM;
+
+// --- 6. External Declarations for Channel Arrays (Defined ONCE in settings.cpp) ---
+extern const byte bluetooth_channels[];
+extern const byte ble_channels[];
+extern const byte WiFi_channels[];
+extern const byte usbWireless_channels[];
+extern const byte videoTransmitter_channels[];
+extern const byte rc_channels[];
+extern const byte zigbee_channels[];
+extern const byte nrf24_channels[];
 
 #endif
