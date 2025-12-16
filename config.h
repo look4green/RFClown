@@ -14,7 +14,7 @@
 #define PIN_BTN_L   27
 #define PIN_BTN_R   25
 #define PIN_BTN_S   26
-#define debounceDelay 200 // Add debounce delay here
+//#define debounceDelay 200 // Add debounce delay here
 
 // --- nRF24-specific Pins ---
 #define NRF_CE_PIN_A    5    
@@ -31,9 +31,10 @@
 #define FONT_MEDIUM       u8g2_font_6x12_tf
 #define FONT_ICON_FALLBACK u8g2_font_open_iconic_thing_2x_t
 
+
 // --- ENUMS (Safe to repeat) ---
 enum OperationMode {
-    WiFi_MODULE, VIDEO_TX_MODULE, RC_MODULE, BLE_MODULE, 
+    WiFi_MODULE, VIDEO_TRANSMITTER_MODULE, RC_MODULE, BLE_MODULE, 
     Bluetooth_MODULE, USB_WIRELESS_MODULE, ZIGBEE_MODULE, NRF24_MODULE
 };
 enum Operation {DEACTIVE_MODE, ACTIVE_MODE};
