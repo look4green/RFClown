@@ -2,10 +2,15 @@
    This software is licensed under the MIT License:
    https://github.com/cifertech/rfclown
    ________________________________________ */
-   
+
 #include "setting.h"
 #include "config.h"
 #include <math.h> // Ensure powf and lroundf are available
+
+// CRITICAL: Add the required libraries for I2C and ESP functionality
+#include <Wire.h> 
+#include <esp_wifi.h>
+//#include <WiFi.h> // Or <esp_wifi.h> if using low-level ESP functions directly
 
 // --- Interrupt Handlers (IRAM_ATTR ensures fast execution) ---
 
@@ -47,15 +52,19 @@ void configure_Radio(RF24 &radio, const byte *channels, size_t size) {
   }
 }
 
+// In function 'void initialize_MultiMode()':
 void initialize_MultiMode() {
   if (RadioA.begin()) {
-    configure_Radio(RadioA, channelGroup_1, sizeof(channelGroup_1));
+    // OLD: configure_Radio(RadioA, channelGroup_1, sizeof(channelGroup_1));
+    configure_Radio(RadioA, channelGroup_1, CHANNEL_GROUP_1_SIZE);
   }
   if (RadioB.begin()) {
-    configure_Radio(RadioB, channelGroup_2, sizeof(channelGroup_2));
+    // OLD: configure_Radio(RadioB, channelGroup_2, sizeof(channelGroup_2));
+    configure_Radio(RadioB, channelGroup_2, CHANNEL_GROUP_2_SIZE);
   }
   if (RadioC.begin()) {
-    configure_Radio(RadioC, channelGroup_3, sizeof(channelGroup_3));
+    // OLD: configure_Radio(RadioC, channelGroup_3, sizeof(channelGroup_3));
+    configure_Radio(RadioC, channelGroup_3, CHANNEL_GROUP_3_SIZE);
   }
 }
 
@@ -78,7 +87,7 @@ static const uint8_t RADIUS   = 3;
 static const uint8_t DOT_Y    = 64 - 6;
 
 static const char* kMenuLabels[] = {
-  "WiFi", "Video TX", "RC", "BLE", "Bluetooth", "USB Wireless", "Zigbee", "NRF24"
+  "WiFi", "Video TRANSMITTER", "RC", "BLE", "Bluetooth", "USB Wireless", "Zigbee", "NRF24"
 };
 static const int kMenuCount = sizeof(kMenuLabels)/sizeof(kMenuLabels[0]);
 
@@ -86,7 +95,7 @@ static const int kMenuCount = sizeof(kMenuLabels)/sizeof(kMenuLabels[0]);
 static int menuIndexFromMode(OperationMode m) {
   switch (m) {
     case WiFi_MODULE:         return 0;
-    case VIDEO_TX_MODULE:     return 1;
+    case VIDEO_TRANSMITTER_MODULE:     return 1;
     case RC_MODULE:           return 2;
     case BLE_MODULE:          return 3;
     case Bluetooth_MODULE:    return 4;
@@ -99,7 +108,7 @@ static int menuIndexFromMode(OperationMode m) {
 static OperationMode modeFromMenuIndex(int idx) {
   switch (idx) {
     case 0: return WiFi_MODULE;
-    case 1: return VIDEO_TX_MODULE;
+    case 1: return VIDEO_TRANSMITTER_MODULE;
     case 2: return RC_MODULE;
     case 3: return BLE_MODULE;
     case 4: return Bluetooth_MODULE;
@@ -408,53 +417,50 @@ void loop() {
   // --- Main Hopping Logic ---
   // If the state and mode haven't just changed, execute the mode-specific action (channel hopping)
   
+// --- Main Hopping Logic ---
   if (current == ACTIVE_MODE) {
-    // The following block relies on the channel arrays defined in settings.cpp
-    
-    // Select the correct channel array based on the current mode
     const byte *channels = nullptr;
     size_t channelCount = 0;
 
-    // Use a switch statement for cleaner code structure
+// Switch statement to select the correct channel array
     switch (current_Mode) {
       case BLE_MODULE:
         channels = ble_channels;
-        channelCount = sizeof(ble_channels) / sizeof(ble_channels[0]);
+        channelCount = BLE_CHANNELS_SIZE;
         break;
       case Bluetooth_MODULE:
         channels = bluetooth_channels;
-        channelCount = sizeof(bluetooth_channels) / sizeof(bluetooth_channels[0]);
+        channelCount = BLUETOOTH_CHANNELS_SIZE;
         break;
       case WiFi_MODULE:
         channels = WiFi_channels;
-        channelCount = sizeof(WiFi_channels) / sizeof(WiFi_channels[0]);
+        channelCount = WIFI_CHANNELS_SIZE;
         break;
       case USB_WIRELESS_MODULE:
         channels = usbWireless_channels;
-        channelCount = sizeof(usbWireless_channels) / sizeof(usbWireless_channels[0]);
+        channelCount = USB_WIRELESS_CHANNELS_SIZE;
         break;
-      case VIDEO_TX_MODULE:
+      case VIDEO_TRANSMITTER_MODULE:
         channels = videoTransmitter_channels;
-        channelCount = sizeof(videoTransmitter_channels) / sizeof(videoTransmitter_channels[0]);
+        channelCount = VIDEO_TRANSMITTER_CHANNELS_SIZE;
         break;
       case RC_MODULE:
         channels = rc_channels;
-        channelCount = sizeof(rc_channels) / sizeof(rc_channels[0]);
+        channelCount = RC_CHANNELS_SIZE;
         break;
       case ZIGBEE_MODULE:
         channels = zigbee_channels;
-        channelCount = sizeof(zigbee_channels) / sizeof(zigbee_channels[0]);
+        channelCount = ZIGBEE_CHANNELS_SIZE;
         break;
       case NRF24_MODULE:
         channels = nrf24_channels;
-        channelCount = sizeof(nrf24_channels) / sizeof(nrf24_channels[0]);
+        channelCount = NRF24_CHANNELS_SIZE;
         break;
       default:
-        // Should not happen, but safe to break or stay put
         return;
     }
 
-    // Perform the hopping if channels were found
+// Perform the hopping
     if (channels && channelCount > 0) {
       int randomIndex = random(0, channelCount);
       byte channel = channels[randomIndex];
