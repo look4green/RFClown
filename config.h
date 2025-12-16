@@ -3,79 +3,39 @@
    https://github.com/cifertech/rfclown
    ________________________________________ */
 
-#ifndef config_H
-#define config_H
+#ifndef CONFIG_H
+#define CONFIG_H
 
-#include <U8g2lib.h>
-#include <Adafruit_NeoPixel.h>
-#include <RF24.h> // Include RF24.h for RF24 object declarations
-#include <esp_bt.h>
-#include <esp_wifi.h>
-
+// --- Hardware and Screen Size ---
 #define SCREEN_W 128
 #define SCREEN_H 64
 
-#define NRF_CE_PIN_A 27
-#define NRF_CSN_PIN_A 26
+// --- Button Pins ---
+#define PIN_BTN_L   27
+#define PIN_BTN_R   25
+#define PIN_BTN_S   26
+#define debounceDelay 200 // Add debounce delay here
 
-#define NRF_CE_PIN_B 33
-#define NRF_CSN_PIN_B 32
+// --- nRF24-specific Pins ---
+#define NRF_CE_PIN_A    5    
+#define NRF_CSN_PIN_A   17 
+#define NRF_CE_PIN_B    16  
+#define NRF_CSN_PIN_B   4  
+#define NRF_CE_PIN_C    15  
+#define NRF_CSN_PIN_C   2  
 
-#define NRF_CE_PIN_C 17
-#define NRF_CSN_PIN_C 5
+// --- U8G2 Font Definitions ---
+// NOTE: These should ideally be defined in the .cpp file where they are used, 
+// but can remain here for consistency if they are only used as const pointers.
+#define FONT_SMALL        u8g2_font_5x8_tf
+#define FONT_MEDIUM       u8g2_font_6x12_tf
+#define FONT_ICON_FALLBACK u8g2_font_open_iconic_thing_2x_t
 
-#define PIN_BTN_L 35 // Left/Down button
-#define PIN_BTN_R 34 // Right/Up button
-#define PIN_BTN_S 39 // Select button (Mode Toggle)
-
-#define FONT_SMALL u8g2_font_6x10_tf
-#define FONT_MEDIUM u8g2_font_9x18_tf
-#define FONT_LARGE u8g2_font_ncenB14_tr
-
-const unsigned long debounceDelay = 200;
-
+// --- ENUMS (Safe to repeat) ---
 enum OperationMode {
-  WiFi_MODULE,
-  VIDEO_TX_MODULE,
-  RC_MODULE,
-  BLE_MODULE,
-  Bluetooth_MODULE,
-  USB_WIRELESS_MODULE,
-  ZIGBEE_MODULE,
-  NRF24_MODULE
+    WiFi_MODULE, VIDEO_TX_MODULE, RC_MODULE, BLE_MODULE, 
+    Bluetooth_MODULE, USB_WIRELESS_MODULE, ZIGBEE_MODULE, NRF24_MODULE
 };
+enum Operation {DEACTIVE_MODE, ACTIVE_MODE};
 
-enum Operation {
-  ACTIVE_MODE,
-  DEACTIVE_MODE
-};
-
-
-const uint16_t ble_channels[] = {2402, 2426, 2480};
-const uint16_t bluetooth_channels[] = {2402, 2426, 2480};
-const uint16_t WiFi_channels[] = {2412, 2437, 2462};
-const uint16_t usbWireless_channels[] = {2402, 2426, 2480};
-const uint16_t videoTransmitter_channels[] = {5740, 5760, 5780, 5800, 5820, 5840, 5860, 5880};
-const uint16_t rc_channels[] = {2404, 2440, 2476};
-const uint16_t zigbee_channels[] = {2405, 2410, 2415, 2420, 2425, 2430, 2435, 2440, 2445, 2450, 2455, 2460, 2465, 2470, 2475, 2480};
-const uint16_t nrf24_channels[] = {2400, 2483};
-
-
-// --- GLOBAL OBJECT/VARIABLE DECLARATIONS (FIX: ALL ARE NOW extern) ---
-extern U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
-extern Adafruit_NeoPixel pixels;
-
-extern OperationMode current_Mode;
-extern volatile Operation current;
-
-extern byte channelGroup_1[];
-extern byte channelGroup_2[];
-extern byte channelGroup_3[];
-
-extern volatile bool ChangeRequested;
-extern volatile bool ChangeRequested1;
-extern volatile bool ChangeRequested2;
-
-extern unsigned long lastPressTime;
-
-#endif // config_H
+#endif // CONFIG_H
