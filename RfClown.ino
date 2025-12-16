@@ -2,37 +2,12 @@
    This software is licensed under the MIT License:
    https://github.com/cifertech/rfclown
    ________________________________________ */
-
+   
 #include "setting.h"
 #include "config.h"
-#include <Wire.h>
+#include <math.h> // Ensure powf and lroundf are available
 
-// From setting.h
-bool neoPixelActive = false;
-uint8_t oledBrightness = 100;
-
-// From config.h
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-Adafruit_NeoPixel pixels(1, 14, NEO_GRB + NEO_KHZ800);
-OperationMode current_Mode = WiFi_MODULE;
-volatile Operation current = DEACTIVE_MODE;
-byte channelGroup_1[] = {2, 5, 8, 11};
-byte channelGroup_2[] = {26, 29, 32, 35};
-byte channelGroup_3[] = {80, 83, 86, 89};
-volatile bool ChangeRequested  = false;
-volatile bool ChangeRequested1 = false;
-volatile bool ChangeRequested2 = false;
-unsigned long lastPressTime = 0;
-
-// From settings.cpp
-// Note: NRF_CE_PIN_A, NRF_CSN_PIN_A, etc., are defined in config.h
-RF24 RadioA(NRF_CE_PIN_A, NRF_CSN_PIN_A);
-RF24 RadioB(NRF_CE_PIN_B, NRF_CSN_PIN_B);
-RF24 RadioC(NRF_CE_PIN_C, NRF_CSN_PIN_C);
-
-// =======================================================
-// --- END GLOBAL DEFINITIONS ---
-// =======================================================
+// --- Interrupt Handlers (IRAM_ATTR ensures fast execution) ---
 
 void IRAM_ATTR handleButton() {
   unsigned long currentTime = millis();
@@ -53,15 +28,19 @@ void IRAM_ATTR handleButton1() {
 void IRAM_ATTR handleButton2() {
   unsigned long currentTime = millis();
   if (currentTime - lastPressTime > debounceDelay) {
+    // This is the action button (Select/Toggle Mode)
     if (current == DEACTIVE_MODE) current = ACTIVE_MODE;
-    else                          current = DEACTIVE_MODE;
+    else                         current = DEACTIVE_MODE;
     lastPressTime = currentTime;
   }
 }
 
+// --- Radio Initialization Functions (Prototypes moved to setting.h/settings.cpp) ---
+
 void configure_Radio(RF24 &radio, const byte *channels, size_t size) {
-  configureNrf(radio);
+  configureNrf(radio); // Defined in settings.cpp
   radio.printPrettyDetails();
+  // Start constant carrier on initial channels
   for (size_t i = 0; i < size; i++) {
     radio.setChannel(channels[i]);
     radio.startConstCarrier(RF24_PA_MAX, channels[i]);
@@ -91,6 +70,7 @@ void initialize_Radios() {
   }
 }
 
+// --- Menu/UI Constants (Local to this file) ---
 static const uint8_t HEADER_H = 12;
 static const uint8_t PAD      = 6;
 static const uint8_t CARD_H   = 36;
@@ -102,6 +82,7 @@ static const char* kMenuLabels[] = {
 };
 static const int kMenuCount = sizeof(kMenuLabels)/sizeof(kMenuLabels[0]);
 
+// --- Menu/Mode Conversion Functions ---
 static int menuIndexFromMode(OperationMode m) {
   switch (m) {
     case WiFi_MODULE:         return 0;
@@ -129,13 +110,16 @@ static OperationMode modeFromMenuIndex(int idx) {
   }
 }
 
+// --- UI Drawing Primitives ---
+// NOTE: u8g2 is externally defined in settings.cpp
+
 void spectrum() {
   const uint8_t HDR_H = 10;
   const int TOP = HDR_H + 12;
-  const int BOT = SCREEN_H - 2;
+  const int BOT = SCREEN_H - 2; // SCREEN_H is defined in config.h
   const int H   = BOT - TOP;
   const int STRIDE = 3;
-  const int BINS   = SCREEN_W / STRIDE;
+  const int BINS   = SCREEN_W / STRIDE; // SCREEN_W is defined in config.h
   const int BAR_W  = 1;
   static uint8_t h[BINS];
   static int8_t  v[BINS];
@@ -175,12 +159,12 @@ void spectrum() {
 }
 
 static void drawHeaderBar() {
-  const uint8_t W = 128;
+  const uint8_t W = SCREEN_W;
   const uint8_t H = HEADER_H;
   const uint8_t TXT_Y = 2;
   u8g2.setDrawColor(1);
   u8g2.drawBox(0, 0, W, H);
-  u8g2.setFont(FONT_SMALL);
+  u8g2.setFont(FONT_SMALL); // FONT_SMALL is defined in config.h
   u8g2.setDrawColor(0);
   u8g2.drawStr(PAD, TXT_Y, "RF-Clown");
   const char* ver = "v2.0.0";
@@ -208,7 +192,7 @@ static void drawPillToggle(int x,int y,int w,int h,bool on){
 
 static void drawPaginationDots(int active){
   int totalW = (kMenuCount * 6) - 2;
-  int startX = (128 - totalW) / 2;
+  int startX = (SCREEN_W - totalW) / 2;
   for (int i=0;i<kMenuCount;i++) {
     int x = startX + i*6;
     if (i == active) u8g2.drawDisc(x, DOT_Y, 2);
@@ -218,7 +202,7 @@ static void drawPaginationDots(int active){
 
 static void drawCardAtCenter(int centerX, int menuIndex){
   const char* label = kMenuLabels[menuIndex];
-  const int W = 128;
+  const int W = SCREEN_W;
   const int w = W - PAD*2;
   const int x = centerX - w/2;
   const int y = HEADER_H + 4;
@@ -226,7 +210,7 @@ static void drawCardAtCenter(int centerX, int menuIndex){
   u8g2.drawBox(x+1, y+1, w-2, CARD_H-2);
   u8g2.setDrawColor(1);
   u8g2.drawRFrame(x, y, w, CARD_H, RADIUS);
-  u8g2.setFont(FONT_MEDIUM);
+  u8g2.setFont(FONT_MEDIUM); // FONT_MEDIUM is defined in config.h
   u8g2.setCursor(x + 12, y + 4);
   u8g2.print(label);
   bool isThisFocus = (modeFromMenuIndex(menuIndex) == current_Mode);
@@ -244,19 +228,20 @@ static void drawCardAtCenter(int centerX, int menuIndex){
 static void renderStaticMenu(int focusIndex) {
   u8g2.clearBuffer();
   drawHeaderBar();
-  drawCardAtCenter(128 / 2, focusIndex);
+  drawCardAtCenter(SCREEN_W / 2, focusIndex);
   drawPaginationDots(focusIndex);
   u8g2.sendBuffer();
 }
 
 static void animateToMenu(int fromIdx, int toIdx) {
-  const int W = 128;
+  const int W = SCREEN_W;
   const int STEPS = 14;
   const uint8_t DT = 10;
   const int dir = (toIdx > fromIdx) ? -1 : 1;
   for (int s = 0; s <= STEPS; s++) {
     float t = (float)s / (float)STEPS;
-    float e = (t < 0.5f) ? 4.0f*t*t*t : 1.0f - powf(-2.0f*t + 2.0f, 3)/2.0f;
+    // Cubic Ease-in-out function
+    float e = (t < 0.5f) ? 4.0f*t*t*t : 1.0f - powf(-2.0f*t + 2.0f, 3)/2.0f; 
     int shift = (int)(e * W + 0.5f);
     int centerFrom = (W/2) + (-dir * shift);
     int centerTo   = (W/2) + ( dir * (W - shift));
@@ -278,11 +263,12 @@ static void animateToggleKnobForFocus(int focusIdx, bool fromActive, bool toActi
   const uint8_t FRAME_MS = 12;
   for (int s=0; s<=STEPS; s++){
     float t = (float)s / (float)STEPS;
+    // Quadratic Ease-in-out function
     float e = (t < 0.5f) ? 2.0f*t*t : 1.0f - powf(-2.0f*t + 2.0f, 2)/2.0f;
     float p = start + (end - start) * e;
     u8g2.clearBuffer();
     drawHeaderBar();
-    const int W = 128;
+    const int W = SCREEN_W;
     const int w = W - PAD*2;
     const int x = W/2 - w/2;
     const int y = HEADER_H + 4;
@@ -291,7 +277,7 @@ static void animateToggleKnobForFocus(int focusIdx, bool fromActive, bool toActi
     u8g2.setDrawColor(1);
     u8g2.drawRFrame(x, y, w, CARD_H, RADIUS);
     u8g2.setFont(FONT_MEDIUM); u8g2.setCursor(x+12, y+4);  u8g2.print(kMenuLabels[focusIdx]);
-    u8g2.setFont(FONT_SMALL);  u8g2.setCursor(x+12, y+16); u8g2.print("----");
+    u8g2.setFont(FONT_SMALL);  u8g2.setCursor(x+12, y+16); u8g2.print(toActive ? "ACTIVE" : "DEACTIVE");
     const int pillW=24, pillH=14;
     const int pillY=(y + ((CARD_H-pillH)/2)) & ~1;
     const int pillX=x + w - pillW - 10;
@@ -308,6 +294,8 @@ void update_OLED() {
   int focus = menuIndexFromMode(current_Mode);
   renderStaticMenu(focus);
 }
+
+// --- Menu Navigation Functions (Triggered by button interrupts) ---
 
 void menuPrev() {
   int fromIdx = menuIndexFromMode(current_Mode);
@@ -331,105 +319,153 @@ void menuToggleActive() {
 void checkMode() {
   if (ChangeRequested) {
     ChangeRequested = false;
-    current_Mode = static_cast<OperationMode>((current_Mode == 0) ? 7 : (current_Mode - 1));
+    menuPrev(); // Using the animation function
   } else if (ChangeRequested1) {
     ChangeRequested1 = false;
-    current_Mode = static_cast<OperationMode>((current_Mode + 1) % 8);
+    menuNext(); // Using the animation function
+  } else if (ChangeRequested2) {
+    ChangeRequested2 = false;
+    menuToggleActive();
   }
 }
 
+// --- Arduino Core Functions ---
+
 void setup() {
   Serial.begin(115200);
+  
+  // Set up all peripherals and power management
+  esp_bt_controller_deinit();
+  esp_wifi_stop();
+  esp_wifi_deinit();
+  esp_wifi_disconnect();
+  
+  // Initialize Radio Hardware (nRF24 objects were defined in settings.cpp)
   initialize_MultiMode();
+  
+  // Initialize I2C for OLED
   Wire.begin();
   Wire.setClock(400000);
+  
+  // Initialize OLED (u8g2 object was defined in settings.cpp)
   u8g2.begin();
   u8g2.setBusClock(400000);
   u8g2.setFont(FONT_SMALL);
   u8g2.setDrawColor(1);
   u8g2.setFontPosTop();
-  esp_bt_controller_deinit();
-  esp_wifi_stop();
-  esp_wifi_deinit();
-  esp_wifi_disconnect();
+  
+  // Configure Buttons (Pins defined in config.h)
   pinMode(PIN_BTN_L, INPUT_PULLUP);
   pinMode(PIN_BTN_R, INPUT_PULLUP);
   pinMode(PIN_BTN_S, INPUT_PULLUP);
+  
+  // Attach Interrupts (Handlers are defined at the top of this file)
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_L), handleButton,  FALLING);
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_R), handleButton1, FALLING);
   attachInterrupt(digitalPinToInterrupt(PIN_BTN_S), handleButton2, FALLING);
-  initialize_Radios();
-  conf();
+  
+  // Initialize the nRF24 radios (sets up power state)
+  initialize_Radios(); 
+  
+  // Run the splash screen (Defined in settings.cpp)
+  conf(); 
+  
+  // Draw the initial menu state
   update_OLED();
 }
 
 void loop() {
+  // Check button press flags and handle menu change/toggle
   checkMode();
-  static Operation     lastActivity = current;
-  static OperationMode lastFocus    = current_Mode;
+
+  // --- State Change Handlers ---
+  // The logic for animating menu changes and active/deactive toggles is lifted from the original .ino
+  static Operation        lastActivity = current;
+  static OperationMode    lastFocus    = current_Mode;
+
   if (current_Mode != lastFocus) {
+    // Mode changed via button: Run Menu Next/Prev animation logic
+    // NOTE: This logic is partially redundant with checkMode's use of menuPrev/menuNext
+    // but kept here as a fallback/check on manual changes.
     int fromIdx = menuIndexFromMode(lastFocus);
     int toIdx   = menuIndexFromMode(current_Mode);
     animateToMenu(fromIdx, toIdx);
     lastFocus = current_Mode;
     return;
   }
+  
   if (current != lastActivity) {
+    // Active/Deactive state changed via button: Re-init radios and run animation
     initialize_Radios();
     int  focus     = menuIndexFromMode(current_Mode);
     bool wasActive = (lastActivity == ACTIVE_MODE);
-    bool nowActive = (current      == ACTIVE_MODE);
+    bool nowActive = (current       == ACTIVE_MODE);
     animateToggleKnobForFocus(focus, wasActive, nowActive);
     lastActivity = current;
     return;
   }
-    if (current_Mode == BLE_MODULE) {
-      int randomIndex = random(0, sizeof(ble_channels) / sizeof(ble_channels[0]));
-      byte channel = ble_channels[randomIndex];
-      RadioA.setChannel(channel);
-      RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
-    } else if (current_Mode == Bluetooth_MODULE) {
-      int randomIndex = random(0, sizeof(bluetooth_channels) / sizeof(bluetooth_channels[0]));
-      byte channel = bluetooth_channels[randomIndex];
-      RadioA.setChannel(channel);
-      RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
-    } else if (current_Mode == WiFi_MODULE) {
-      int randomIndex = random(0, sizeof(WiFi_channels) / sizeof(WiFi_channels[0]));
-      byte channel = WiFi_channels[randomIndex];
-      RadioA.setChannel(channel);
-      RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
-    } else if (current_Mode == USB_WIRELESS_MODULE) {
-      int randomIndex = random(0, sizeof(usbWireless_channels) / sizeof(usbWireless_channels[0]));
-      byte channel = usbWireless_channels[randomIndex];
-      RadioA.setChannel(channel);
-      RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
-    } else if (current_Mode == VIDEO_TX_MODULE) {
-      int randomIndex = random(0, sizeof(videoTransmitter_channels) / sizeof(videoTransmitter_channels[0]));
-      byte channel = videoTransmitter_channels[randomIndex];
-      RadioA.setChannel(channel);
-      RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
-    } else if (current_Mode == RC_MODULE) {
-      int randomIndex = random(0, sizeof(rc_channels) / sizeof(rc_channels[0]));
-      byte channel = rc_channels[randomIndex];
-      RadioA.setChannel(channel);
-      RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
-    } else if (current_Mode == ZIGBEE_MODULE) {
-      int randomIndex = random(0, sizeof(zigbee_channels) / sizeof(zigbee_channels[0]));
-      byte channel = zigbee_channels[randomIndex];
-      RadioA.setChannel(channel);
-      RadioB.setChannel(channel);
-      RadioC.setChannel(channel);
-    } else if (current_Mode == NRF24_MODULE) {
-      int randomIndex = random(0, sizeof(nrf24_channels) / sizeof(nrf24_channels[0]));
-      byte channel = nrf24_channels[randomIndex];
+  
+  // --- Main Hopping Logic ---
+  // If the state and mode haven't just changed, execute the mode-specific action (channel hopping)
+  
+  if (current == ACTIVE_MODE) {
+    // The following block relies on the channel arrays defined in settings.cpp
+    
+    // Select the correct channel array based on the current mode
+    const byte *channels = nullptr;
+    size_t channelCount = 0;
+
+    // Use a switch statement for cleaner code structure
+    switch (current_Mode) {
+      case BLE_MODULE:
+        channels = ble_channels;
+        channelCount = sizeof(ble_channels) / sizeof(ble_channels[0]);
+        break;
+      case Bluetooth_MODULE:
+        channels = bluetooth_channels;
+        channelCount = sizeof(bluetooth_channels) / sizeof(bluetooth_channels[0]);
+        break;
+      case WiFi_MODULE:
+        channels = WiFi_channels;
+        channelCount = sizeof(WiFi_channels) / sizeof(WiFi_channels[0]);
+        break;
+      case USB_WIRELESS_MODULE:
+        channels = usbWireless_channels;
+        channelCount = sizeof(usbWireless_channels) / sizeof(usbWireless_channels[0]);
+        break;
+      case VIDEO_TX_MODULE:
+        channels = videoTransmitter_channels;
+        channelCount = sizeof(videoTransmitter_channels) / sizeof(videoTransmitter_channels[0]);
+        break;
+      case RC_MODULE:
+        channels = rc_channels;
+        channelCount = sizeof(rc_channels) / sizeof(rc_channels[0]);
+        break;
+      case ZIGBEE_MODULE:
+        channels = zigbee_channels;
+        channelCount = sizeof(zigbee_channels) / sizeof(zigbee_channels[0]);
+        break;
+      case NRF24_MODULE:
+        channels = nrf24_channels;
+        channelCount = sizeof(nrf24_channels) / sizeof(nrf24_channels[0]);
+        break;
+      default:
+        // Should not happen, but safe to break or stay put
+        return;
+    }
+
+    // Perform the hopping if channels were found
+    if (channels && channelCount > 0) {
+      int randomIndex = random(0, channelCount);
+      byte channel = channels[randomIndex];
+      
+      // Set all three radios to the randomly selected channel
       RadioA.setChannel(channel);
       RadioB.setChannel(channel);
       RadioC.setChannel(channel);
     }
+  }
+  
+  // Optional: Run Neopixel loop logic if any is defined
+  // neopixelLoop(); // Prototype is in setting.h
 }
