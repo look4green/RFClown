@@ -1,6 +1,6 @@
 /* ____________________________
    This software is licensed under the MIT License:
-   https://github.com/cifertech/rfclown
+   https://github.com/look4green/RFClown
    ________________________________________ */
    
 #include "setting.h"
